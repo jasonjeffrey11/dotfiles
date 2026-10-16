@@ -1,0 +1,19 @@
+.claude/skills/jira-story-planner/SKILL.md
+  s_6cdf926a2e505b::t_83f333a0ac673c 1-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5cbec894d5e5cd16a165ebf4b7210660ae7a31e",
+  "prompts": {},
+  "sessions": {
+    "s_6cdf926a2e505b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7e57f042-290a-458b-b30f-47d4e70c8e27",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
