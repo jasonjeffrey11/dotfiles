@@ -5,11 +5,9 @@ description: Turn a Jira story into an implementation plan. Reads the ticket's a
 
 # Jira Story Planner
 
-Turn Jira story `$ARGUMENTS` into a plan another engineer can execute without re-reading the ticket. This skill writes no code. It reads the ticket, the designs, the decisions, and the codebase, and produces a plan. If `$ARGUMENTS` is empty, ask JJ for the ticket key before anything else.
+Turn the Jira story named in the request into a plan another engineer can execute without re-reading the ticket. This skill writes no code. It reads the ticket, the designs, the decisions, and the codebase, and produces a plan. If no ticket key was given, ask JJ for it before anything else.
 
-To run it in a fresh session from a terminal: `claude "/jira-story-planner CVR-1234"`.
-
-Jira site `https://sohonet.atlassian.net`, cloudId `3e82e209-b61e-4bbc-8b4f-f004bc048a95`. If a call rejects that cloudId, call `getAccessibleAtlassianResources` and use the returned one.
+The `jira-story-planner` agent runs this skill and carries the Jira site details, the read-only tool restrictions, the ask-JJ protocol and the planning rules. Run it in a fresh session with `claude --agent jira-story-planner "Plan CVR-1234"`.
 
 ## Steps
 
@@ -27,27 +25,7 @@ Jira site `https://sohonet.atlassian.net`, cloudId `3e82e209-b61e-4bbc-8b4f-f004
 
 5. **Ground it in code.** Work from the current working directory. For each AC, find the files it touches: components, routes, models, API handlers, existing tests. Note existing helpers and patterns to reuse so the plan does not propose re-implementing them. If the story spans CVR repos and you are not in the right one, invoke the `cvr-codebase-lookup` skill rather than guessing.
 
-6. **Reconcile.** Where the ACs, the Figma, the decisions, and the code disagree, say so explicitly. Do not silently pick one. If a conflict or gap changes what gets built, that is a question for JJ, not a judgement call: go to "When unsure".
-
-## When unsure
-
-You are unsure when any of these is true: an AC can be read two ways that lead to different code; the Figma and the ACs conflict; a decision in the knowledge base contradicts the ticket; a design state the ACs need is missing from Figma; the ticket depends on something you cannot find in code. Do not guess and do not pad the plan with assumptions.
-
-JJ may have stepped away from the terminal, so get their attention first, then ask:
-
-1. Write the questions to `$CLAUDE_JOB_DIR/tmp/jira-story-planner-questions.txt` (or `$TMPDIR` outside a job). Plain text, under 4096 characters: first line `CVR-1234 needs your input before I can plan it`, then one numbered question per line.
-2. Ping JJ on Telegram:
-   ```bash
-   set -a; . ~/.config/cvr-jira-updates/.env; set +a
-   curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-     --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
-     --data-urlencode "text@$FILE" | jq -r '.ok'
-   ```
-   If the env file is missing, say so and carry on to step 3.
-3. Ask with `AskUserQuestion`, up to four questions per call, multiple choice where the options are obvious, one call covering everything you have. Include the partial finding that raised each question so JJ can answer from the prompt alone.
-4. Fold the answers in and continue from where you stopped. Record each answer in the plan's "Decisions applied" section with source "JJ, this session".
-
-Ask everything you have in one go. Do not come back three times. If a later step raises a genuinely new question, one more round is fine; a third is not.
+6. **Reconcile.** Where the ACs, the Figma, the decisions, and the code disagree, say so explicitly. Do not silently pick one. If a conflict or gap changes what gets built, that is a question for JJ, not a judgement call: stop and ask, per the agent's "When unsure" protocol.
 
 ## Output
 
@@ -83,11 +61,3 @@ One line per AC: the test that proves it, and where it lives (existing file or n
 ## Risks
 - Anything that could bite: migrations, shared components, feature flags, permissions, perf. Skip the section if there are none.
 ```
-
-## Rules
-
-- Quote ACs; do not paraphrase them into something easier.
-- Copy, labels, and error text come from Figma, not from your head.
-- Prefer the smallest plan that satisfies every AC. Mark anything beyond the ACs as "not required by ticket" or leave it out.
-- A plan built on guesses is worse than no plan. Unsure means stop and ask, per "When unsure".
-- Never transition the ticket, comment on it, or edit anything.

@@ -41,7 +41,7 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
    ```bash
    S=~/.local/state/cvr-jira-updates; f="$S/plan-$KEY.command"; mkdir -p "$S"
    [ -e "$f" ] || {
-     printf '#!/bin/zsh -l\ncd ~/projects && exec claude "/jira-story-planner %s"\n' "$KEY" > "$f"
+     printf '#!/bin/zsh -l\ncd ~/projects && exec claude --agent jira-story-planner "Plan %s"\n' "$KEY" > "$f"
      chmod +x "$f" && open -a iTerm "$f"
    }
    ```
