@@ -143,3 +143,8 @@ YOU MUST follow this debugging framework for ANY technical issue:
 - Track patterns in user feedback to improve collaboration over time
 - When you notice something that should be fixed but is unrelated to your current task, document it in your journal rather than fixing it immediately
 
+
+## Skills
+
+- Global skills live in `~/projects/dotfiles/.claude/skills/<name>/SKILL.md`. Create every new global skill there, never directly in `~/.claude/skills` or `~/.agents/skills`.
+- `~/.claude/skills` is a symlink to `~/.agents/skills`, which is what Claude Code loads. After creating a skill in dotfiles, link it in: `ln -sfn ~/projects/dotfiles/.claude/skills/<name> ~/.agents/skills/<name>`.
