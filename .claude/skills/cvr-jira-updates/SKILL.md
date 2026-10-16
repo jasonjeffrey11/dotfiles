@@ -1,12 +1,12 @@
 ---
 name: cvr-jira-updates
-description: Check the Jira CVR project for tickets assigned to me and report what changed since the last check (status/field changes, new comments, new assignments). Use when the user says "any jira updates", "what's changed on my tickets", "check my CVR tickets", "jira changes since yesterday", "anything new on my board", or asks for a Jira catch-up. Read-only against Jira; keeps a last-checked timestamp locally.
+description: Check the Jira CVR project for tickets assigned to me, report what changed since the last check (status/field changes, new comments, new assignments), and send the summary to Telegram when there is something to report. Use when the user says "any jira updates", "what's changed on my tickets", "check my CVR tickets", "jira changes since yesterday", "anything new on my board", or asks for a Jira catch-up. Read-only against Jira; keeps a last-checked timestamp locally.
 ---
 
 # CVR Jira Updates
 
 Reports changes to CVR tickets assigned to the current user since the last time this skill ran.
-Read-only against Jira. The only thing written is a local last-checked timestamp.
+Read-only against Jira. The only things written are a local last-checked timestamp and a Telegram message when there is something to report.
 
 Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc048a95`). If a call rejects that cloudId, call `getAccessibleAtlassianResources` and use the returned one.
 
@@ -52,7 +52,17 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
    ```
    Flag at the top, before the per-ticket list, anything that needs the user's action: newly assigned tickets, comments that @mention them or end in a question, transitions into "Ready for QA"/"Blocked".
 
-6. **Write the timestamp** captured in step 1 to the state file (`mkdir -p` the directory first). Do this only after the report is produced so a failed run is re-checked next time.
+6. **Send to Telegram** when at least one ticket has changes by someone else after step 4. Skip entirely when there is nothing to report. Write a plain-text version of the report (no Markdown, ticket URL on its own line, comments cut to one line each) to `$CLAUDE_JOB_DIR/tmp/cvr-jira-updates.txt` or, outside a job, `$TMPDIR/cvr-jira-updates.txt`, then:
+   ```bash
+   curl -sS -X POST "https://api.telegram.org/bot$(op read 'op://Work/Telegram CVR Bot/token')/sendMessage" \
+     --data-urlencode "chat_id=$(op read 'op://Work/Telegram CVR Bot/chat_id')" \
+     --data-urlencode "text@$FILE" | jq -r '.ok'
+   ```
+   Telegram caps a message at 4096 characters: keep the text under that by shortening comment excerpts, or send the "needs your attention" block first and the per-ticket list as a second message. If `op read` fails, say the 1Password item is missing and still print the report; do not skip step 7.
+
+   One-time setup, if the item does not exist: create a bot with @BotFather in Telegram, send it any message, then run `curl -s "https://api.telegram.org/bot<token>/getUpdates" | jq '.result[0].message.chat.id'` for the chat id. Store both as fields `token` and `chat_id` on a 1Password item named `Telegram CVR Bot` in the `Work` vault.
+
+7. **Write the timestamp** captured in step 1 to the state file (`mkdir -p` the directory first). Do this only after the report is produced so a failed run is re-checked next time.
 
 ## Notes
 
