@@ -1,0 +1,19 @@
+.claude/skills/cvr-jira-updates/SKILL.md
+  s_16f65e44e79df8::t_238367d855e7df 55,57,59-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "075e1a1a42cc28d9e5aa0bed020692bd764bf7a7",
+  "prompts": {},
+  "sessions": {
+    "s_16f65e44e79df8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a8df82a-28ff-4fd6-be5d-f7c9100024d1",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
