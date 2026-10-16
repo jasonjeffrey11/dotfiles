@@ -1,0 +1,23 @@
+.claude/agents/jira-story-planner.md
+  s_3c53b410116dd2::t_b7be2830f1988c 1-40
+.claude/skills/cvr-jira-updates/SKILL.md
+  s_3c53b410116dd2::t_011e88d35cd9cc 44
+.claude/skills/jira-story-planner/SKILL.md
+  s_3c53b410116dd2::t_8919f044233be0 8,10,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b30fc13134052eacee97724cd85c994385ddd9bf",
+  "prompts": {},
+  "sessions": {
+    "s_3c53b410116dd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a0af4af4-0edc-4daa-876d-44c41de18a9a",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
