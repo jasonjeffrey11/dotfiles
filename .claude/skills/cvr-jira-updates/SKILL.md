@@ -73,3 +73,13 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
 
 - Tickets unassigned *from* the user since the last check won't appear: the JQL only matches current assignee. ponytail: add a `assignee WAS currentUser()` clause if that ever matters.
 - Changelog `created` values carry a UTC offset; compare as instants, not strings.
+
+## Scheduled runs
+
+`launchd/com.sohonet.cvr-jira-updates.plist` fires `scripts/run.sh` every quarter hour; the script only does a real run on weekdays 09:00–17:30 local time, via `claude -p`. Log: `~/Library/Logs/cvr-jira-updates.log`.
+
+```bash
+cp launchd/com.sohonet.cvr-jira-updates.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sohonet.cvr-jira-updates.plist   # install
+launchctl bootout gui/$(id -u)/com.sohonet.cvr-jira-updates                                   # remove
+```

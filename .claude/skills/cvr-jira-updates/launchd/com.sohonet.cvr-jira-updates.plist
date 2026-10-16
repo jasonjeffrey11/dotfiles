@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Every quarter hour: run the cvr-jira-updates skill (weekday 09:00-17:30 guard is in run.sh).
+      Source: ~/projects/dotfiles/.claude/skills/cvr-jira-updates/launchd/
+      Install: cp this file to ~/Library/LaunchAgents/ then
+               launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sohonet.cvr-jira-updates.plist
+      Logs: ~/Library/Logs/cvr-jira-updates.log
+    -->
+    <key>Label</key>
+    <string>com.sohonet.cvr-jira-updates</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/jasonjeffrey/projects/dotfiles/.claude/skills/cvr-jira-updates/scripts/run.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Minute</key><integer>15</integer></dict>
+        <dict><key>Minute</key><integer>30</integer></dict>
+        <dict><key>Minute</key><integer>45</integer></dict>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/jasonjeffrey</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/jasonjeffrey/Library/Logs/cvr-jira-updates.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jasonjeffrey/Library/Logs/cvr-jira-updates.log</string>
+</dict>
+</plist>
