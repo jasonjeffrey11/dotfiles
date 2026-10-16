@@ -1,0 +1,14 @@
+.claude/skills/cvr-jira-updates/SKILL.md
+  h_98c64b08e4bdd5 3,9,55-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ac465223343646480c0e5e300152e2f9ba68411b",
+  "prompts": {},
+  "humans": {
+    "h_98c64b08e4bdd5": {
+      "author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
