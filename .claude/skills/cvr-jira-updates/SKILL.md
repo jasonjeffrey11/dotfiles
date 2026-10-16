@@ -52,15 +52,19 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
    ```
    Flag at the top, before the per-ticket list, anything that needs the user's action: newly assigned tickets, comments that @mention them or end in a question, transitions into "Ready for QA"/"Blocked".
 
-6. **Send to Telegram** when at least one ticket has changes by someone else after step 4. Skip entirely when there is nothing to report. Write a plain-text version of the report (no Markdown, ticket URL on its own line, comments cut to one line each) to `$CLAUDE_JOB_DIR/tmp/cvr-jira-updates.txt` or, outside a job, `$TMPDIR/cvr-jira-updates.txt`, then:
+6. **Send to Telegram** when at least one ticket has changes by someone else after step 4. Skip entirely when there is nothing to report. Build a plain-text version of the report (no Markdown, ticket URL on its own line, comments cut to one line each, "needs your attention" block first). Chat id is the first entry of `allowFrom` in `~/.claude/channels/telegram/access.json`:
    ```bash
-   curl -sS -X POST "https://api.telegram.org/bot$(op read 'op://Work/Telegram CVR Bot/token')/sendMessage" \
-     --data-urlencode "chat_id=$(op read 'op://Work/Telegram CVR Bot/chat_id')" \
-     --data-urlencode "text@$FILE" | jq -r '.ok'
+   jq -r '.allowFrom[0]' ~/.claude/channels/telegram/access.json
    ```
-   Telegram caps a message at 4096 characters: keep the text under that by shortening comment excerpts, or send the "needs your attention" block first and the per-ticket list as a second message. If `op read` fails, say the 1Password item is missing and still print the report; do not skip step 7.
-
-   One-time setup, if the item does not exist: create a bot with @BotFather in Telegram, send it any message, then run `curl -s "https://api.telegram.org/bot<token>/getUpdates" | jq '.result[0].message.chat.id'` for the chat id. Store both as fields `token` and `chat_id` on a 1Password item named `Telegram CVR Bot` in the `Work` vault.
+   - **Channel session** (Claude was launched with `--channels plugin:telegram@claude-plugins-official`, so a `reply` tool from the `telegram` MCP server is loaded, named like `mcp__plugin_telegram_telegram__reply`): call `reply` with `chat_id` and `text`. The server chunks messages over 4096 characters itself.
+   - **Otherwise** use the same bot token the channel plugin stores, via the Bot API. Write the text to `$CLAUDE_JOB_DIR/tmp/cvr-jira-updates.txt` (or `$TMPDIR/cvr-jira-updates.txt` outside a job), keep it under 4096 characters, then:
+     ```bash
+     set -a; . ~/.claude/channels/telegram/.env; set +a
+     curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+       --data-urlencode "chat_id=$(jq -r '.allowFrom[0]' ~/.claude/channels/telegram/access.json)" \
+       --data-urlencode "text@$FILE" | jq -r '.ok'
+     ```
+   If the env file or access.json is missing, say so, still print the report, and do not skip step 7. Setup lives in the Telegram channel plugin: `/plugin install telegram@claude-plugins-official`, `/telegram:configure <token>`, then pair by DMing the bot and running `/telegram:access pair <code>`.
 
 7. **Write the timestamp** captured in step 1 to the state file (`mkdir -p` the directory first). Do this only after the report is produced so a failed run is re-checked next time.
 
