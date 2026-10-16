@@ -1,0 +1,21 @@
+.claude/skills/cvr-jira-updates/launchd/com.sohonet.cvr-jira-updates.plist
+  s_16f65e44e79df8::t_60cb6cb209e229 1-39
+.claude/skills/cvr-jira-updates/scripts/run.sh
+  s_16f65e44e79df8::t_6f47a52ecafe3b 1-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab0fa48eb679f883390480c4a7fa26663b0fdcea",
+  "prompts": {},
+  "sessions": {
+    "s_16f65e44e79df8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a8df82a-28ff-4fd6-be5d-f7c9100024d1",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
