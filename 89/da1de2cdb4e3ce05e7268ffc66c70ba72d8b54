@@ -1,0 +1,29 @@
+.claude/agents/cvr-coder.md
+  s_0a4c7d30da8dbf::t_9a6c4e2098eb6f 1-28
+.claude/agents/jira-story-planner.md
+  s_0a4c7d30da8dbf::t_b0df060fee5937 12-17
+.claude/agents/orchestrator.md
+  s_0a4c7d30da8dbf::t_18b13667a6d1e0 3,10,20,24
+.claude/scripts/orchestrate-ticket.sh
+  s_0a4c7d30da8dbf::t_ff4711380b9d5f 2-3,8,32,36,38,44-47
+.claude/skills/cvr-jira-updates/SKILL.md
+  s_0a4c7d30da8dbf::t_f08c6a3e4c78fa 3,9,40,42-43,45,47-49,64,73,79
+.claude/skills/cvr-jira-updates/scripts/run.sh
+  s_0a4c7d30da8dbf::t_c24ca6562f1399 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "89da1de2cdb4e3ce05e7268ffc66c70ba72d8b54",
+  "prompts": {},
+  "sessions": {
+    "s_0a4c7d30da8dbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "426e40bf-9708-4d2c-875d-04f43c8da477",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
