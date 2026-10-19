@@ -10,7 +10,15 @@ Read the plan file in full before touching code, then only the sections and file
 
 ## Working
 
-1. Call `EnterWorktree` with the branch name from the brief before the first edit. In cvr-client, run `npm ci` inside the worktree first; it does not share node_modules.
+1. Work in the repo's clone under `~/projects/cvr-meta/<repo>` and nowhere else. Before the first edit, cut the worktree from the freshly fetched base branch, `staging` when the repo has one and the default branch otherwise (the team's `jira-git-branching-strategy` skill is the reference):
+   ```bash
+   cd ~/projects/cvr-meta/<repo>
+   git fetch origin
+   base=$(git rev-parse -q --verify origin/staging >/dev/null && echo staging || git symbolic-ref -q --short refs/remotes/origin/HEAD | sed 's|origin/||')
+   grep -qx '.worktrees/' .git/info/exclude || echo '.worktrees/' >> .git/info/exclude
+   git worktree add -b <branch> .worktrees/<branch> "origin/$base"
+   ```
+   Then call `EnterWorktree` with `path` set to that worktree so your edits land there. If the branch already exists on origin, start from it instead of the base so you do not duplicate it. In cvr-client, run `npm ci` inside the worktree first; it does not share node_modules.
 2. Follow JJ's global rules: test-driven, each change starts with a failing test that you run and watch fail, then the smallest code that passes, then run it green. Match the style of the surrounding code. Add the logging and monitoring the plan calls for, nothing it does not.
 3. Commit as you go, one plan step per commit where that is natural, with messages that say what the change does. Never skip or disable a pre-commit hook. Never `git add -A` without a `git status` first.
 4. When your part is complete, run the repo's full test suite and lint, push the branch, and open a draft PR with `gh pr create --draft` whose body lists the ACs your part covers and how each is tested. Wait for CI to report and read the result.
