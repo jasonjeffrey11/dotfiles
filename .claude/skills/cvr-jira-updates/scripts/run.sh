@@ -10,4 +10,5 @@ now=$(date +%H%M)
 echo "--- $(date -Iseconds)"
 cd "$HOME"
 claude -p "Run the cvr-jira-updates skill now. Do not ask questions; if a step cannot complete, say why and stop." \
-  --allowedTools "Skill,Bash,Read,Write,mcp__jira__*"
+  --model claude-sonnet-5-5 \
+  --allowedTools "Skill,Bash,Read,Write,SendMessage,ListAgents,mcp__jira__*"

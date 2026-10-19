@@ -1,12 +1,12 @@
 ---
 name: cvr-jira-updates
-description: Check the Jira CVR project for tickets assigned to me, report what changed since the last check (status/field changes, new comments, new assignments), send the summary to Telegram when there is something to report, and open a jira-story-planner session for any story that just moved to In Progress. Use when the user says "any jira updates", "what's changed on my tickets", "check my CVR tickets", "jira changes since yesterday", "anything new on my board", or asks for a Jira catch-up. Read-only against Jira; keeps a last-checked timestamp locally.
+description: Check the Jira CVR project for tickets assigned to me, report what changed since the last check (status/field changes, new comments, new assignments), send the summary to Telegram when there is something to report, start an orchestrator session for any story that just moved to In Progress, and relay later changes on that story to its orchestrator. Use when the user says "any jira updates", "what's changed on my tickets", "check my CVR tickets", "jira changes since yesterday", "anything new on my board", or asks for a Jira catch-up. Read-only against Jira; keeps a last-checked timestamp locally.
 ---
 
 # CVR Jira Updates
 
 Reports changes to CVR tickets assigned to the current user since the last time this skill ran.
-Read-only against Jira. The only things written are local state (last-checked timestamp, one `.command` file per planned ticket), a Telegram message when there is something to report, and a new iTerm window when a story has just moved to In Progress.
+Read-only against Jira. The only things written are local state (last-checked timestamp, one `orchestrator-<KEY>` file per started story), a Telegram message when there is something to report, a new orchestrator background session when a story has just moved to In Progress, and a message to that session when the story changes again.
 
 Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc048a95`). If a call rejects that cloudId, call `getAccessibleAtlassianResources` and use the returned one.
 
@@ -37,17 +37,16 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
    Ignore `Rank` field changes. Everything else counts: status, assignee, priority, sprint, labels, description, fix version, attachments, links.
    A ticket with nothing left after filtering is still listed in a one-line "touched but only by you / rank" footer so the JQL hit is explained.
 
-5. **Plan newly started stories.** A ticket whose in-window changelog entries (from step 3, before the step 4 author filter: the user starting their own story is the usual case) contain a `status` item with `toString` = `In Progress` has just been picked up. Open a planning session for it in a new iTerm window, once per ticket:
+5. **Start newly picked-up stories.** A ticket whose in-window changelog entries (from step 3, before the step 4 author filter: the user starting their own story is the usual case) contain a `status` item with `toString` = `In Progress` has just been picked up. Start an orchestrator for it, once per ticket:
    ```bash
-   S=~/.local/state/cvr-jira-updates; f="$S/plan-$KEY.command"; mkdir -p "$S"
-   [ -e "$f" ] || {
-     printf '#!/bin/zsh -l\ncd ~/projects && exec claude --agent jira-story-planner "Plan %s"\n' "$KEY" > "$f"
-     chmod +x "$f" && open -a iTerm "$f"
-   }
+   S=~/.local/state/cvr-jira-updates; f="$S/orchestrator-$KEY"; mkdir -p "$S"
+   [ -e "$f" ] || ~/projects/dotfiles/.claude/scripts/orchestrate-ticket.sh "$KEY" > "$f"
    ```
-   `open -a iTerm` goes through Launch Services, so it works from the headless launchd run; `osascript` does not (macOS refuses Apple events from a non-interactive process). Add `Planning session opened in iTerm: CVR-1234` to the top of the report. The planner pings Telegram itself when it needs an answer. The `.command` file is also the "already planned" marker, so a re-run (step 8 leaves the timestamp alone on failure) does not open a second window and a ticket that leaves In Progress and comes back is not re-planned. ponytail: delete the file to plan it again.
+   The file holds the launch summary (session id and name) and is the "already started" marker, so a re-run (step 9 leaves the timestamp alone on failure) does not start a second one and a ticket that leaves In Progress and comes back is not restarted. ponytail: delete the file to start it again. Add `Orchestrator started: orchestrator-CVR-1234` to the top of the report. The orchestrator plans the story itself and pings Telegram when it needs JJ.
 
-6. **Report.** Group by ticket, newest first. Format:
+6. **Relay changes to the story's orchestrator.** For each ticket with changes left after step 4 that has an `orchestrator-$KEY` file and was not started in this run, `SendMessage` to `orchestrator-$KEY` with the ticket's entry from the report in step 7 (first line `$KEY changed in Jira: <one-line summary>`). If the send fails because the session is gone, say so in the report under that ticket; do not restart it.
+
+7. **Report.** Group by ticket, newest first. Format:
 
    ```
    ## CVR updates since Wed 15 Oct 09:30
@@ -62,7 +61,7 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
    ```
    Flag at the top, before the per-ticket list, anything that needs the user's action: newly assigned tickets, comments that @mention them or end in a question, transitions into "Ready for QA"/"Blocked".
 
-7. **Send to Telegram** when at least one ticket has changes by someone else after step 4. Skip entirely when there is nothing to report. Build a plain-text version of the report (no Markdown, ticket URL on its own line, comments cut to one line each, "needs your attention" block first). Bot token and chat id live in `~/.config/cvr-jira-updates/.env` as `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (owner-only file, so the skill runs without prompting).
+8. **Send to Telegram** when at least one ticket has changes by someone else after step 4. Skip entirely when there is nothing to report. Build a plain-text version of the report (no Markdown, ticket URL on its own line, comments cut to one line each, "needs your attention" block first). Bot token and chat id live in `~/.config/cvr-jira-updates/.env` as `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (owner-only file, so the skill runs without prompting).
    - **Channel session** (Claude was launched with `--channels plugin:telegram@claude-plugins-official`, so a `reply` tool from the `telegram` MCP server is loaded, named like `mcp__plugin_telegram_telegram__reply`): call `reply` with `chat_id` set to `TELEGRAM_CHAT_ID` and `text`. The server chunks messages over 4096 characters itself.
    - **Otherwise** use the Bot API. Write the text to `$CLAUDE_JOB_DIR/tmp/cvr-jira-updates.txt` (or `$TMPDIR/cvr-jira-updates.txt` outside a job), keep it under 4096 characters, then:
      ```bash
@@ -71,13 +70,13 @@ Site: `https://sohonet.atlassian.net` (cloudId `3e82e209-b61e-4bbc-8b4f-f004bc04
        --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
        --data-urlencode "text@$FILE" | jq -r '.ok'
      ```
-   If the env file is missing, say so, still print the report, and do not skip step 8. To recreate it from the 1Password item `Telegram CVR Bot` (Work vault):
+   If the env file is missing, say so, still print the report, and do not skip step 9. To recreate it from the 1Password item `Telegram CVR Bot` (Work vault):
    ```bash
    mkdir -p ~/.config/cvr-jira-updates && umask 077 && printf 'TELEGRAM_BOT_TOKEN=%s\nTELEGRAM_CHAT_ID=%s\n' \
      "$(op read 'op://Work/Telegram CVR Bot/token')" "$(op read 'op://Work/Telegram CVR Bot/chat_id')" > ~/.config/cvr-jira-updates/.env
    ```
 
-8. **Write the timestamp** captured in step 1 to the state file (`mkdir -p` the directory first). Do this only after the report is produced so a failed run is re-checked next time.
+9. **Write the timestamp** captured in step 1 to the state file (`mkdir -p` the directory first). Do this only after the report is produced so a failed run is re-checked next time.
 
 ## Notes
 

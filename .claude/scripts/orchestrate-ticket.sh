@@ -1,10 +1,11 @@
 #!/bin/zsh -l
-# Starts the orchestrator for a Jira story and drives it to the Definition of Done.
+# Starts an orchestrator for a Jira story and drives it to the Definition of Done.
+# Prints the launch summary; the session is named orchestrator-<KEY>.
 # Usage: orchestrate-ticket.sh CVR-1234
 set -eu
 KEY=${1:?usage: orchestrate-ticket.sh CVR-1234}
 cd ~/projects/cvr-meta
-exec claude --bg -n orchestrator --agent orchestrator "$(cat <<PROMPT
+exec claude --bg -n "orchestrator-$KEY" --agent orchestrator "$(cat <<PROMPT
 Drive Jira story $KEY from "In Progress" until every applicable item of the Definition of Done is met or explicitly handed to JJ.
 
 ## Definition of Done (Sohonet product team)
@@ -28,17 +29,21 @@ Not every item applies to every story. The planner decides which do; you track o
 
 ## Steps
 
-1. **Plan.** Start a planner: \`claude --bg -n $KEY-planner --agent jira-story-planner "Plan $KEY. After the plan, list which Definition of Done items apply to this story and why, numbered as in the list the orchestrator holds; mark the rest 'does not apply' with one line each. Send the full plan and the list to the session named orchestrator with SendMessage, first line done:. Do not stop before sending it."\` Include the Definition of Done list in that brief. The planner is read-only, so the plan arrives in its message: save it to ~/.local/state/orchestrator/$KEY/plan.md and the applicable items, each with status \`todo\` and an owner (worker, JJ, PM), to ~/.local/state/orchestrator/$KEY/dod.md. That file is the board; update it on every change.
+1. **Plan.** Start a planner: \`claude --bg -n $KEY-planner --agent jira-story-planner "Plan $KEY. After the plan, list which Definition of Done items apply to this story and why, numbered as in the list the orchestrator holds; mark the rest 'does not apply' with one line each. Send the full plan and the list to the session named orchestrator-$KEY with SendMessage, first line done:, and stay available for a verification request later. Do not stop before sending it."\` Include the Definition of Done list in that brief. The planner is read-only, so the plan arrives in its message: save it to ~/.local/state/orchestrator/$KEY/plan.md and the applicable items, each with status \`todo\` and an owner (worker, JJ, PM), to ~/.local/state/orchestrator/$KEY/dod.md. That file is the board; update it on every change.
 
 2. **Confirm scope with JJ.** Send JJ the plan summary and the applicable-items list (Telegram ping, then AskUserQuestion). Wait for a yes, or fold in the changes. This is the one gate before code is written.
 
-3. **Build.** Start one worker per independent part of the plan, in the repo the plan names, each in its own worktree and branch \`$KEY-<part>\` (cvr-client worktrees live in cvr-client/.worktrees/<TICKET> and need their own npm ci). The brief tells it: the plan path, its part, TDD per JJ's global rules, add logging where the plan calls for it, push the branch, open a draft PR, and report. Items 1, 2, 4, 5 and 6 are the worker's to satisfy and to prove in its report (test output, CI link). Do not accept "tests pass" without the output.
+3. **Build.** Start one \`cvr-coder\` per independent part of the plan: \`claude --bg -n $KEY-<part> --agent cvr-coder "<brief>"\` run from the repo the plan names. The brief carries the ticket, the repo path, the plan path, which plan steps are its part, the branch name \`$KEY-<part>\`, and your session name to report to. The coder works test-first in its own worktree, pushes, opens a draft PR and reports with evidence. Items 1, 2, 4, 5 and 6 are the coder's to satisfy and to prove in its report (test output, CI link). Do not accept "tests pass" without the output. Record each coder on the board.
 
-4. **Review.** When a build worker reports done, start \`$KEY-review\` with the PR and \`/code-review high\`; have it report findings to you. Send real findings back to the build worker as a follow-up message; mark item 3 as needing a human reviewer once the automated pass is clean and the PR is marked ready. Peer review by the team is JJ's to arrange; list it for them.
+4. **Verify the ACs.** When every coder has reported done, send the planner (\`$KEY-planner\`, still running) the PR URLs, branches and worktree paths and ask it to check each acceptance criterion against what was built, replying done: or blocked: with a per-AC list. Send each "not met" item back to the coder that owns that part as a follow-up; when it reports again, ask the planner to re-check only those ACs. Then start \`$KEY-review\` on the PRs with \`/code-review high\`, send real findings to the owning coder the same way, and mark item 3 as needing a human reviewer once the automated pass is clean and the PRs are marked ready. Peer review by the team is JJ's to arrange; list it for them.
 
 5. **Beyond the code.** Items 7 to 14 need environments, people or documents. For each applicable one, decide what a worker can do (write the release-note entry, draft the docs or wiki text, draft the show & tell summary, run the deploy per the start-release-process skill when JJ has said which environment) and what only JJ or the PM can do (UAT sign-off, staging deploy approval, communicating config changes). Workers draft; humans sign off. Record the owner on the board.
 
 6. **Report.** When every applicable item is done or handed over, tell JJ: per item, who did it and the evidence (PR, CI run, deploy tag, doc link), plus the hand-over list with exactly what JJ or the PM still has to do. Leave the worker sessions running and name them.
+
+## When the ticket changes
+
+The cvr-jira-updates skill messages this session when someone else changes $KEY: a new comment, an edited description, a status move. A comment or edit that touches the ACs goes to the planner to say whether the plan changes; if it does, update the plan and board and tell the affected coders. A status move to anything other than In Progress or a question aimed at JJ goes to JJ. Everything else is a line on the board.
 
 ## Rules
 
