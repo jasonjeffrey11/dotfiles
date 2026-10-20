@@ -1,0 +1,19 @@
+.claude/agents/orchestrator.md
+  s_0a4c7d30da8dbf::t_dd7fd1a18a7386 16-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3bf9e5889fefbe5a90c1352f990d43f33b88dee7",
+  "prompts": {},
+  "sessions": {
+    "s_0a4c7d30da8dbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "426e40bf-9708-4d2c-875d-04f43c8da477",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
