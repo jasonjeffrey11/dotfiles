@@ -1,0 +1,21 @@
+.claude/agents/cvr-reviewer.md
+  s_0a4c7d30da8dbf::t_e4592c3b664d6a 3,10,27-38
+.claude/scripts/orchestrate-ticket.sh
+  s_0a4c7d30da8dbf::t_baeec1d04a35bc 40-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f3a23a2459283d06f332a8a9b67350e3790e7fe",
+  "prompts": {},
+  "sessions": {
+    "s_0a4c7d30da8dbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "426e40bf-9708-4d2c-875d-04f43c8da477",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Jason Jeffrey <jason.jeffrey@sohonet.com>"
+    }
+  }
+}
