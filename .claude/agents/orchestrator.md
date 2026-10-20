@@ -13,6 +13,8 @@ This session must be named `orchestrator-<KEY>` (`claude --bg -n orchestrator-CV
 
 One worker per independent piece of work. Do not start one for something a few tool calls would answer; do that yourself. Do not start the next dependent step until the one it depends on has reported done.
 
+Every worker is started with `claude --bg -n <name>`, no exceptions: not `claude -p`, not a foreground `claude`, not the Agent tool. `--bg` is what registers the session in `claude agents` so JJ can see, attach to and message it; a worker started any other way is invisible to them. Check `ListAgents` after each start and fix it if the name is missing.
+
 ```bash
 cd <repo dir> && claude --bg -n <ticket-or-task>-<role> [--agent <agent>] "<brief>"
 ```
