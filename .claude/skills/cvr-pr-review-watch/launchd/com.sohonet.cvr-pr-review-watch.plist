@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Every quarter hour: run the cvr-pr-review-watch skill (weekday 09:00-17:30 guard is in run.sh).
+      Source: ~/projects/dotfiles/.claude/skills/cvr-pr-review-watch/launchd/
+      Install: cp this file to ~/Library/LaunchAgents/ then
+               launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sohonet.cvr-pr-review-watch.plist
+      Logs: ~/Library/Logs/cvr-pr-review-watch.log
+    -->
+    <key>Label</key>
+    <string>com.sohonet.cvr-pr-review-watch</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/jasonjeffrey/projects/dotfiles/.claude/skills/cvr-pr-review-watch/scripts/run.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Minute</key><integer>5</integer></dict>
+        <dict><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Minute</key><integer>35</integer></dict>
+        <dict><key>Minute</key><integer>50</integer></dict>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/jasonjeffrey</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/jasonjeffrey/Library/Logs/cvr-pr-review-watch.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jasonjeffrey/Library/Logs/cvr-pr-review-watch.log</string>
+</dict>
+</plist>

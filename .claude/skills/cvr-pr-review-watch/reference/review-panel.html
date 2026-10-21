@@ -1,0 +1,160 @@
+<!--
+  Review panel for a pr-visual-review page. Goes inside the "Comments to raise"
+  section in place of the drafted-comment list; the page must be published with
+  capabilities {db: {}, user: {}}.
+
+  The placeholder inside the review-items script is replaced with JSON:
+    {"pr": "owner/repo#n",
+     "items": [{"id": "r1-1", "round": 1, "severity": "blocker|should-fix|nit",
+                "path": "src/a.ts", "line": 10, "url": "https://github.com/...",
+                "body": "the comment", "reply_to": 123456, "context": "what the author said"}]}
+  reply_to (a GitHub review comment id) and context are only set on reply drafts.
+
+  Artifact database documents:
+    submissions/round-<n>  written here on Submit: {round, comments: [{id, path, line, body, reply_to}], submitted_at}
+    review/state           written by the orchestrator: {message}
+    review/approval        written here on Approve: {approve: true, at}
+-->
+<div id="review-panel">
+  <p class="rp-state" id="rp-state"></p>
+  <div id="rp-rounds"></div>
+  <div class="rp-actions">
+    <button type="button" id="rp-approve" class="rp-btn rp-btn-ok">Approve PR</button>
+    <span class="rp-note" id="rp-note"></span>
+  </div>
+</div>
+<style>
+  .rp-state { font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); min-height: 1.2em; }
+  .rp-state:empty { display: none; }
+  .rp-round h3 { font-size: 0.95rem; margin: 1.4rem 0 0.4rem; }
+  .rp-item .f-head { padding-bottom: 0.6rem; }
+  .rp-item label { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
+  .rp-item .f-where { margin: 0; margin-left: auto; }
+  .rp-item blockquote { margin: 0.6rem 0 0; padding: 0.5rem 0.8rem; border-left: 3px solid var(--border-strong);
+                        color: var(--text-dim); font-size: 0.9rem; }
+  .rp-item textarea { width: 100%; box-sizing: border-box; margin-top: 0.7rem; min-height: 4.5em;
+                      padding: 0.6rem 0.7rem; border: 1px solid var(--border); border-radius: 8px;
+                      background: var(--surface-2); color: var(--text); font: inherit; font-size: 0.92rem;
+                      line-height: 1.45; resize: vertical; }
+  .rp-item textarea:disabled { opacity: 0.7; }
+  .rp-item.rp-off { opacity: 0.55; }
+  .rp-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; flex-wrap: wrap; }
+  .rp-btn { font: inherit; font-size: 0.9rem; font-weight: 600; padding: 0.55rem 1rem; border-radius: 8px;
+            border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); cursor: pointer; }
+  .rp-btn-ok { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+  .rp-btn:disabled { opacity: 0.5; cursor: default; }
+  .rp-note { font-family: var(--mono); font-size: 0.78rem; color: var(--text-dim); }
+</style>
+<script id="review-items" type="application/json">__REVIEW_ITEMS__</script>
+<script>
+(async () => {
+  const { pr, items } = JSON.parse(document.getElementById('review-items').textContent);
+  const roundsEl = document.getElementById('rp-rounds');
+  const stateEl = document.getElementById('rp-state');
+  const noteEl = document.getElementById('rp-note');
+  const approveBtn = document.getElementById('rp-approve');
+  const sevClass = { blocker: 'blocker', 'should-fix': 'should', nit: 'nit' };
+  const draftKey = (id) => `pr-review:${pr}:${id}`;
+  const readDraft = (id) => { try { return JSON.parse(localStorage.getItem(draftKey(id))) || {}; } catch { return {}; } };
+  const saveDraft = (id, draft) => { try { localStorage.setItem(draftKey(id), JSON.stringify(draft)); } catch {} };
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  const rounds = [...new Set(items.map((i) => i.round))].sort((a, b) => a - b);
+  for (const round of rounds) {
+    const roundItems = items.filter((i) => i.round === round);
+    const title = roundItems.some((i) => i.reply_to) ? 'Replies to the author' : 'Review comments';
+    const el = document.createElement('div');
+    el.className = 'rp-round';
+    el.dataset.round = round;
+    el.innerHTML = `<h3>Round ${round} · ${title}</h3>` + roundItems.map((i) => {
+      const draft = readDraft(i.id);
+      const where = i.url ? `<a class="f-where" href="${esc(i.url)}">${esc(i.path)}:${esc(i.line)}</a>`
+                          : `<span class="f-where">${esc(i.path)}:${esc(i.line)}</span>`;
+      return `<article class="rp-item finding ${sevClass[i.severity] || 'nit'}${draft.checked === false ? ' rp-off' : ''}" data-id="${esc(i.id)}">
+        <div class="f-head">
+          <label><input type="checkbox"${draft.checked === false ? '' : ' checked'}> <span class="sev">${esc(i.severity)}</span> ${where}</label>
+          ${i.context ? `<blockquote>${esc(i.context)}</blockquote>` : ''}
+          <textarea>${esc(draft.body ?? i.body)}</textarea>
+        </div></article>`;
+    }).join('') + `<div class="rp-actions"><button type="button" class="rp-btn" data-submit-round="${round}">Submit selected to GitHub</button></div>`;
+    roundsEl.appendChild(el);
+  }
+
+  roundsEl.addEventListener('input', (e) => {
+    const item = e.target.closest('.rp-item');
+    if (!item) return;
+    const checked = item.querySelector('input[type=checkbox]').checked;
+    item.classList.toggle('rp-off', !checked);
+    saveDraft(item.dataset.id, { checked, body: item.querySelector('textarea').value });
+  });
+
+  const db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+  if (!db) {
+    stateEl.textContent = 'Sign in on claude.ai to submit comments or approve.';
+    document.querySelectorAll('#review-panel button').forEach((b) => { b.disabled = true; });
+    return;
+  }
+
+  const lockRound = (round, submittedAt) => {
+    const el = roundsEl.querySelector(`.rp-round[data-round="${round}"]`);
+    if (!el) return;
+    el.querySelectorAll('input, textarea').forEach((f) => { f.disabled = true; });
+    const btn = el.querySelector('[data-submit-round]');
+    if (btn) btn.replaceWith(Object.assign(document.createElement('span'), { className: 'rp-note', textContent: `Submitted ${submittedAt}` }));
+  };
+
+  db.collection('submissions').onSnapshot((snap) => {
+    snap.docs.forEach((d) => { const data = d.data(); if (data) lockRound(data.round, data.submitted_at); });
+  }, (e) => { stateEl.textContent = `Submissions unavailable: ${e.message}`; });
+
+  db.doc('review/state').onSnapshot((snap) => {
+    const data = snap.exists ? snap.data() : null;
+    stateEl.textContent = data && data.message ? data.message : '';
+  }, () => {});
+
+  db.doc('review/approval').onSnapshot((snap) => {
+    if (!snap.exists) return;
+    approveBtn.disabled = true;
+    approveBtn.textContent = 'Approved';
+    noteEl.textContent = `Approval sent ${snap.data().at}`;
+  }, () => {});
+
+  roundsEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-submit-round]');
+    if (!btn) return;
+    const round = Number(btn.dataset.submitRound);
+    const comments = [...roundsEl.querySelectorAll(`.rp-round[data-round="${round}"] .rp-item`)]
+      .filter((el) => el.querySelector('input[type=checkbox]').checked)
+      .map((el) => {
+        const i = items.find((x) => x.id === el.dataset.id);
+        return { id: i.id, path: i.path, line: i.line, body: el.querySelector('textarea').value.trim(), reply_to: i.reply_to ?? null };
+      });
+    btn.disabled = true;
+    try {
+      await db.doc(`submissions/round-${round}`).set({ round, comments, submitted_at: new Date().toISOString() });
+    } catch (err) {
+      btn.disabled = false;
+      stateEl.textContent = `Submit failed: ${err.message}`;
+    }
+  });
+
+  let armed = null;
+  approveBtn.addEventListener('click', async () => {
+    if (!armed) {
+      approveBtn.textContent = 'Click again to approve';
+      armed = setTimeout(() => { armed = null; approveBtn.textContent = 'Approve PR'; }, 6000);
+      return;
+    }
+    clearTimeout(armed);
+    approveBtn.disabled = true;
+    try {
+      await db.doc('review/approval').set({ approve: true, at: new Date().toISOString() });
+    } catch (err) {
+      approveBtn.disabled = false;
+      approveBtn.textContent = 'Approve PR';
+      armed = null;
+      stateEl.textContent = `Approve failed: ${err.message}`;
+    }
+  });
+})();
+</script>
