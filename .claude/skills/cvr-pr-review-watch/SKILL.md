@@ -1,6 +1,6 @@
 ---
 name: cvr-pr-review-watch
-description: Watch #rush-code-review for frontend PRs (cvr-client, cvr-client-admin) that someone other than me asks to have reviewed, start a pr-review orchestrator session for each new one, and relay later posts about a PR to its orchestrator. Use when the user says "check code review for new PRs", "any new FE PRs to review", "watch rush-code-review", "start a review for cvr-client PR 600", or asks for a code-review catch-up. Read-only against Slack; keeps a last-checked timestamp locally.
+description: Watch the rush-code-review Slack channel for frontend PRs (cvr-client, cvr-client-admin) that someone other than me asks to have reviewed, start a pr-review orchestrator session for each new one, and relay later posts about a PR to its orchestrator. Use when the user says "check code review for new PRs", "any new FE PRs to review", "watch rush-code-review", "start a review for cvr-client PR 600", or asks for a code-review catch-up. Read-only against Slack; keeps a last-checked timestamp locally.
 ---
 
 # CVR PR review watch
